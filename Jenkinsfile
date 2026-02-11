@@ -1,47 +1,59 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-
-    stage('Checkout') {
-      steps {
-        git 'https://github.com/Guru911/spring-petclinic.git'
-      }
+    tools {
+        maven 'Maven3'
     }
 
-    stage('Build') {
-      steps {
-        sh 'mvn clean package -DskipTests'
-      }
+    environment {
+        IMAGE_NAME = "petclinic"
+        IMAGE_TAG  = "1.0"
     }
 
-    stage('Test') {
-      steps {
-        sh 'mvn test'
-      }
-    }
+    stages {
 
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('sonarqube') {
-          sh 'mvn sonar:sonar'
+        stage('Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
         }
-      }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Deploy (Local Docker)') {
+            steps {
+                sh '''
+                  docker rm -f petclinic || true
+                  docker run -d -p 8081:8080 --name petclinic petclinic:1.0
+                '''
+            }
+        }
     }
 
-    stage('Docker Build') {
-      steps {
-        sh 'docker build -t petclinic:1.0 .'
-      }
+    post {
+        success {
+            echo 'Pipeline completed successfully'
+        }
+        failure {
+            echo 'Pipeline failed'
+        }
     }
-
-    stage('Run Application') {
-      steps {
-        sh '''
-          docker rm -f petclinic || true
-          docker run -d -p 8081:8080 --name petclinic petclinic:1.0
-        '''
-      }
-    }
-  }
 }
