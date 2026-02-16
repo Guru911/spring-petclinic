@@ -12,5 +12,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    version: green
-    {{- include "petclinic.selectorLabels" . | nindent 4 }}
+   
+  {{- include "petclinic.selectorLabels" . | nindent 4 }}
